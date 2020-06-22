@@ -19,6 +19,14 @@ analysis.Plot('POWR', 'VServo')
 y = analysis.Data['GPS']['Alt'][1:]     # This is the variable of interest
 x = np.linspace(0, 100, len(y))         # This is the variable Time
 ```
+
+## Sample plots
+* Plot 1: Absolute flight altitude during the flight missionm, recorded by GPS
+![alt text](Figure_1.png)
+
+* Plot 2: Oscillation of battery voltage during the flight mission
+![alt text](Figure_2.png)
+
 ## Language
 Python 3
 ## Requirements
