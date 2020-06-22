@@ -24,3 +24,6 @@ Python 3
 ## Requirements
 * Numpy
 * Matplotlib
+
+## Example of log file
+An example of a log file is provided as a compressed file. Uncompress the **00000039.7z** file.
