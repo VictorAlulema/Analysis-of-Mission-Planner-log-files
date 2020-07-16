@@ -41,7 +41,7 @@ class LogFileProcessing:
                 pass
             i = i + 1
         LogFile.close()
-        print(i)
+        print('Read {} lines '.format(i))
         return Parameters
 
 
@@ -68,7 +68,7 @@ class LogFileProcessing:
         """
         # Data
         y = self.Data[Param][Subparam][1:]
-        x = np.linspace(0, 100, len(y))
+        x = np.linspace(0, 30, len(y))
         if FigureSize:
             pass
         else:
@@ -109,23 +109,32 @@ class LogFileProcessing:
         fig.tight_layout()
         plt.show()
 
+    def PieChart(self,labels,sizes):
+        fig, ax = plt.subplots()
+        ax.pie(sizes, labels=labels, autopct='%1.1f%%',
+        shadow=True, startangle=90)
+        ax.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle
+        plt.show()
 
-if __name__ == '__main__':
-    analysis = LogFileProcessing('00000039.log')
+
+# Let's analyze the flight data
+
+if __name__ == '__main__':    
+    analysis = LogFileProcessing('00000104.log')
     analysis.Plot(Param='GPS',Subparam='Alt')
     analysis.Plot(Param='GPS',Subparam='Spd')
     analysis.Plot(Param='BARO',Subparam='Alt')
     analysis.Plot(Param='BAT',Subparam='Volt')
     analysis.Plot(Param='POWR',Subparam='VServo')
+    analysis.Plot(Param='BAT',Subparam='CurrTot')
+    
     # Get data for further analysis
-    Voltage = analysis.Data['BAT']['Volt'][1:]  # This is the variable of interest
+    Voltage = analysis.Data['BAT']['Volt'][1:]       # This is the variable of interest
     Current = analysis.Data['BAT']['Curr'][1:]
     Power = np.array([Voltage[i] * Current[i] for i in range(len(Voltage))])
-    PowerCruise = Power[np.where(Power > 50)]
-    
-    time = np.linspace(0, 30, len(PowerCruise))      # This is the variable Time
-    analysis.PlotDemo(time,PowerCruise)
-    analysis.Subparams('GPS')
+    # PowerCruise = Power[np.where(Power > 50)]
+    time = np.linspace(0, 30, len(Power))      # This is the variable Time
+    analysis.PlotDemo(time,Power)
     
     # 3D Plot of flight data
     latitude = analysis.Data['GPS']['Lat'][1:]
@@ -141,7 +150,6 @@ if __name__ == '__main__':
     ax.zaxis.pane.set_edgecolor('white')
     ax.grid(False)
     ax.plot(latitude, longitude, altitude)
-
     New_Power = []
     m = 0
     for i in range(0,int(len(Power)/2)-1):
@@ -151,12 +159,55 @@ if __name__ == '__main__':
     s = ax.scatter(latitude, longitude, altitude ,
                    s = size, marker = 'o' , c = New_Power,
                    cmap = cm.jet, linewidths = 0.025,
-                   edgecolors = 'k')
-
-    
+                   edgecolors = 'k') 
     c_bar = fig.colorbar(s, ax = ax)
     plt.show()
+
+    # Just to check the new Power have the same behaviour of the original data due to the resampling
     t1 = np.linspace(0,30,len(Power))
     plt.plot(t1, Power)
     t2 = np.linspace(0,30,len(New_Power))
     plt.plot(t2,New_Power)
+    plt.show()
+
+    # Power breackdown respect to flight time
+    CurrTot = analysis.Data['BAT']['CurrTot'][1:]
+    # mAh consumed during take-off
+    mAh_TakeOff = CurrTot[(np.where(Power == max(Power)))[0][0]]
+    t_TakeOff = time[np.where(Power == max(Power))][0]
+
+    # mAh consumed during cruise (i.e. during the mission)
+    # t = 27 ===> time when the UAV starts descending
+    mAh_cruise = CurrTot[(np.where(time >= 27))[0][0]] - mAh_TakeOff
+    t_cruise = time[(np.where(time >= 27))[0][0]] - t_TakeOff
+
+    # mAh consumed during landing
+    mAh_landing =  CurrTot[-1] - mAh_cruise - mAh_TakeOff
+    t_landing = time[-1] - t_cruise - t_TakeOff
+
+    Cumulative_Current = max(CurrTot)
+    # Let's see the results
+
+    # First, let's see the fractions of mAhs consumed during each flight phase respect to
+    # the total of mAhs consumed
+    
+    f_TakeOff =  mAh_TakeOff / Cumulative_Current
+    f_Cruise = mAh_cruise / Cumulative_Current
+    f_Landing = mAh_landing / Cumulative_Current
+    
+    labels = ['Takeoff', 'Cruise', 'Landing']
+    sizes = [f_TakeOff, f_Cruise, f_Landing]
+    analysis.PieChart(labels, sizes)
+
+    # Now, let'se see the fractions respect to the battery capacity\
+    Bat_Capacity = 8000
+    f_TakeOff =  mAh_TakeOff / Bat_Capacity
+    f_Cruise = mAh_cruise / Bat_Capacity
+    f_Landing = mAh_landing / Bat_Capacity
+    f_Remaining = (Bat_Capacity - Cumulative_Current) / Bat_Capacity
+
+    labels = ['Takeoff', 'Cruise', 'Landing', 'Remaining']
+    sizes = [f_TakeOff, f_Cruise, f_Landing, f_Remaining]
+    analysis.PieChart(labels, sizes)
+    
+    
