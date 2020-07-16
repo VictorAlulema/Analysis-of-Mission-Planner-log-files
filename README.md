@@ -27,6 +27,9 @@ x = np.linspace(0, 100, len(y))         # This is the variable Time
 * Plot 2: Oscillation of battery voltage during the flight mission
 ![alt text](Figure_2.png)
 
+* Plot 3: 3D Plot of the flight data: Mission profile VS power consumed
+![alt text](3D_plot.png)
+
 ## Language
 Python 3
 ## Requirements
